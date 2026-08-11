@@ -25,8 +25,6 @@
 
 > 💡 本模板按标准多文件扩展布局组织，字段与清单均符合插件市场校验要求，可直接打包上传。
 
----
-
 ## ✨ 功能一览
 
 | 能力 | 说明 |
@@ -57,8 +55,6 @@ enabled = true
 
 > 卸载或禁用后，对应指令与 `ExampleService` 能力将不可用。
 
----
-
 ## 🎮 指令
 
 指令前缀继承机器人全局 `command_start`（默认 `#`），以下以 `#` 为例。
@@ -82,8 +78,6 @@ enabled = true
 ```
 
 > 缺省参数时命令会返回友好提示（如「请提供要重复的文本。」），不会静默无响应。
-
----
 
 ## ⚙️ 配置
 
@@ -116,8 +110,6 @@ if service is not None:
 | `compose_greeting` | `compose_greeting(name: str) -> str` | 按配置模板生成问候语 |
 | `repeat_text` | `repeat_text(text: str, count: int \| None = None) -> list[str]` | 将文本重复多行，受 `max_repeat` 约束 |
 
----
-
 ## 📁 目录结构
 
 ```
@@ -129,8 +121,6 @@ Extensions/Example/
 └── Services.py         # 服务实现（ExampleService）
 ```
 
----
-
 ## 🛠 故障排查
 
 | 现象 | 可能原因 | 处理 |
@@ -138,8 +128,6 @@ Extensions/Example/
 | 指令提示「示例服务不可用」 | 扩展未被正确加载或服务登记失败 | 确认 `Config/Extensions.toml` 已启用，查看日志 |
 | 指令无响应 | 缺参时未兜底返回提示 | 检查 handler 中是否正确判断 `Match.available` 与 `result` |
 | 配置修改不生效 | 修改后未重启 | 修改启停/配置后需重启机器人 |
-
----
 
 ## 📤 发布到 UniBot 插件市场
 

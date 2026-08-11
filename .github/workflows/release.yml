@@ -56,6 +56,8 @@ jobs:
 
       - name: Upload asset to Release
         if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${{ github.event.release.tag_name }}" \
             "dist/${{ steps.package.outputs.zip_name }}" \
