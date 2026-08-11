@@ -44,12 +44,12 @@ jobs:
           zip_name="${id}-${version}.zip"
           zip_path="$DIST_DIR/$zip_name"
 
-          # 用 zip 根即扩展目录的方式打包（zip 根包含 Extension.toml）。
+          # cd 进 Extension/ 目录后打包当前内容，使 zip 根直接是扩展内容
+          # （Extension.toml、__init__.py 等在根目录），而非嵌套一层 Extension/ 文件夹。
           # -D 丢弃目录条目；排除 __pycache__/*.pyc/系统文件。
-          # 注意：顶层目录用 `Extension/.git/*`（`Extension/*/.git/*` 因 `.git` 前加路径前缀）。
-          zip -r -q -D "$zip_path" Extension \
-            -x 'Extension/.git/*' -x 'Extension/.github/*' -x 'Extension/*/__pycache__/*' -x 'Extension/*.pyc' \
-            -x '.DS_Store' -x '*.DS_Store'
+          (cd "$GITHUB_WORKSPACE/Extension" && zip -r -q -D "$OLDPWD/$zip_path" . \
+            -x '*/.git/*' -x '*/.github/*' -x '*/__pycache__/*' -x '*.pyc' \
+            -x '.DS_Store' -x '*.DS_Store')
 
           echo "zip_name=${zip_name}" >> "$GITHUB_OUTPUT"
           echo "✅ ${zip_name}"
