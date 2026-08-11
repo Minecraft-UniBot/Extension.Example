@@ -17,9 +17,7 @@ Example 示例指令。
 
 from typing import override
 
-from nonebot_plugin_alconna import Match
-
-from Scripts.Extensions import Command, SubCommand
+from Scripts.Extensions import Command, SubCommand, Match
 
 from . import extension
 from .Services import ExampleService
