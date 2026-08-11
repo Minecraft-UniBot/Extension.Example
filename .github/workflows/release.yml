@@ -1,0 +1,90 @@
+name: Release Extension
+
+# 触发条件：
+#   - release:published  —— 发布 GitHub Release 时自动打包本扩展
+#   - workflow_dispatch  —— 手动触发（便于测试）
+#
+# 行为：将当前扩展目录打包为 zip（zip 根即扩展目录，内含 Extension.toml），
+#       计算 zip 的 SHA-256 校验和，上传为 Release 资产，
+#       并把「文件名 + SHA-256」汇总输出为 job 摘要，供扩展注册表登记。
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Package extension and compute SHA-256
+        id: package
+        run: |
+          set -euo pipefail
+
+          DIST_DIR="dist"
+          mkdir -p "$DIST_DIR"
+
+          # 从清单读扩展 id 与版本号（[extension] 段的 id / version = "..."）
+          manifest="Extension.toml"
+          id="$(sed -n 's/^id[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' "$manifest" | head -n1)"
+          id="${id:-example}"
+          version="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' "$manifest" | head -n1)"
+          version="${version:-0.0.0}"
+
+          zip_name="${id}-${version}.zip"
+          zip_path="$DIST_DIR/$zip_name"
+
+          # 用 zip 根即扩展目录的方式打包（zip 根包含 Extension.toml）。
+          # -D 丢弃目录条目；排除 .git/.github/cache/系统文件。
+          # 注意：顶层目录用 `.git/*`（`*/.git/*` 因 `.git` 前无字符不生效）。
+          zip -r -q -D "$zip_path" . \
+            -x '.git/*' -x '.github/*' -x '*/__pycache__/*' -x '*.pyc' \
+            -x '.DS_Store' -x '*.DS_Store'
+
+          sha256=$(shasum -a 256 "$zip_path" | awk '{print $1}')
+          echo "${sha256}  ${zip_name}" > "$DIST_DIR/SHA256SUMS.txt"
+
+          echo "zip_name=${zip_name}" >> "$GITHUB_OUTPUT"
+          echo "✅ ${zip_name}  sha256=${sha256}"
+
+      - name: Upload asset to Release
+        if: github.event_name == 'release'
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "dist/${{ steps.package.outputs.zip_name }}" \
+            --repo "${{ github.repository }}" --clobber
+
+      - name: Upload SHA-256 sum to Release
+        if: github.event_name == 'release'
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            dist/SHA256SUMS.txt \
+            --repo "${{ github.repository }}" --clobber
+
+      - name: Summarize SHA-256
+        run: |
+          echo "## 扩展 SHA-256 校验和" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat dist/SHA256SUMS.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "以上校验和已同步写入 Release 资产 \`SHA256SUMS.txt\`，登记扩展注册表时使用。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload dist as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-package
+          path: dist/
+          if-no-files-found: error
